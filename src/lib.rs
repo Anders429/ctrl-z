@@ -1,4 +1,13 @@
-use std::io::{BufRead, Error, ErrorKind, Read, Result};
+#[cfg(test)]
+#[macro_use]
+extern crate claim;
+
+use std::io::BufRead;
+use std::io::Error;
+use std::io::ErrorKind;
+use std::io::Read;
+use std::io::Result;
+use std::slice;
 
 pub struct ReadToCtrlZ<R> {
     inner: R,
@@ -7,8 +16,8 @@ pub struct ReadToCtrlZ<R> {
 
 impl<R> ReadToCtrlZ<R> {
     pub fn new(inner: R) -> Self {
-        Self {
-            inner,
+        ReadToCtrlZ {
+            inner: inner,
             terminated: false,
         }
     }
@@ -23,11 +32,11 @@ where
             return Ok(0);
         }
 
-        let n = self.inner.read(buf)?;
+        let n = try!(self.inner.read(buf));
         for i in 0..n {
-            if *buf.get(i).ok_or_else(|| {
+            if *try!(buf.get(i).ok_or_else(|| {
                 Error::new(ErrorKind::Other, "buffer smaller than amount of bytes read")
-            })? == b'\x1a'
+            })) == b'\x1a'
             {
                 self.terminated = true;
                 return Ok(i);
@@ -46,7 +55,7 @@ where
             return Ok(&[]);
         }
 
-        let buf = self.inner.fill_buf()?;
+        let buf = try!(self.inner.fill_buf());
         for i in 0..buf.len() {
             // SAFETY: `i` is guaranteed to be a valid index into `buf`.
             if *unsafe { buf.get_unchecked(i) } == b'\x1a' {
@@ -54,7 +63,7 @@ where
                     self.terminated = true;
                 }
                 // SAFETY: The range `..i` is guaranteed to be a valid index into `buf`.
-                return Ok(unsafe { buf.get_unchecked(..i) });
+                return Ok(unsafe { slice::from_raw_parts(buf.as_ptr(), i) });
             }
         }
         Ok(buf)
@@ -68,15 +77,17 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use claim::{assert_err, assert_ok_eq};
-    use std::io::{ErrorKind, Read, Result};
+    use std::io::BufRead;
+    use std::io::ErrorKind;
+    use std::io::Read;
+    use std::io::Result;
 
     #[test]
     fn read_exclude_ctrl_z() {
         let mut output = String::new();
 
         assert_ok_eq!(
-            ReadToCtrlZ::new(b"foo\x1a".as_slice()).read_to_string(&mut output),
+            ReadToCtrlZ::new(b"foo\x1a" as &[u8]).read_to_string(&mut output),
             3
         );
         assert_eq!(output, "foo");
@@ -87,7 +98,7 @@ mod tests {
         let mut output = String::new();
 
         assert_ok_eq!(
-            ReadToCtrlZ::new(b"foo".as_slice()).read_to_string(&mut output),
+            ReadToCtrlZ::new(b"foo" as &[u8]).read_to_string(&mut output),
             3
         );
         assert_eq!(output, "foo");
@@ -98,7 +109,7 @@ mod tests {
         let mut output = String::new();
 
         assert_ok_eq!(
-            ReadToCtrlZ::new(b"foo\x1abar".as_slice()).read_to_string(&mut output),
+            ReadToCtrlZ::new(b"foo\x1abar" as &[u8]).read_to_string(&mut output),
             3
         );
         assert_eq!(output, "foo");
@@ -107,7 +118,7 @@ mod tests {
     #[test]
     fn read_after_ctrl_z() {
         let mut output = String::new();
-        let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
+        let mut reader = ReadToCtrlZ::new(b"foo\x1abar" as &[u8]);
 
         assert_ok_eq!(reader.read_to_string(&mut output), 3);
         assert_eq!(output, "foo");
@@ -130,29 +141,29 @@ mod tests {
 
         assert_eq!(error.kind(), ErrorKind::Other);
         assert_eq!(
-            error.into_inner().unwrap().to_string(),
+            error.to_string(),
             "buffer smaller than amount of bytes read"
-        );
+        )
     }
 
     #[test]
     fn buf_read_exclude_ctrl_z() {
-        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1a".as_slice()).fill_buf(), b"foo");
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1a" as &[u8]).fill_buf(), b"foo");
     }
 
     #[test]
     fn buf_read_no_ctrl_z() {
-        assert_ok_eq!(ReadToCtrlZ::new(b"foo".as_slice()).fill_buf(), b"foo");
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo" as &[u8]).fill_buf(), b"foo");
     }
 
     #[test]
     fn buf_read_stop_at_ctrl_z() {
-        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1abar".as_slice()).fill_buf(), b"foo");
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1abar" as &[u8]).fill_buf(), b"foo");
     }
 
     #[test]
     fn buf_read_after_ctrl_z() {
-        let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
+        let mut reader = ReadToCtrlZ::new(b"foo\x1abar" as &[u8]);
 
         assert_ok_eq!(reader.fill_buf(), b"foo");
         reader.consume(3);
