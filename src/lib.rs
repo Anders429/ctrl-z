@@ -57,7 +57,7 @@ where
                 return Ok(unsafe { buf.get_unchecked(..i) });
             }
         }
-        return Ok(buf);
+        Ok(buf)
     }
 
     fn consume(&mut self, amount: usize) {
