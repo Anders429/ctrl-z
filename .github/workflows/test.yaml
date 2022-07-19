@@ -53,3 +53,18 @@ jobs:
         toolchain: nightly
         components: clippy
     - run: cargo clippy -- --deny warnings
+
+  codecov:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: nightly
+        components: llvm-tools-preview
+    - run: cargo install cargo-llvm-cov
+    - run: cargo llvm-cov --lcov --output-path lcov.info
+    - uses: codecov/codecov-action@v2
+      with:
+        files: lcov.info
+        fail_ci_if_error: true
