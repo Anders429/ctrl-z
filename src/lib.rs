@@ -2,11 +2,15 @@ use std::io::{Error, ErrorKind, Read, Result};
 
 pub struct ReadToCtrlZ<R> {
     inner: R,
+    terminated: bool,
 }
 
 impl<R> ReadToCtrlZ<R> {
     pub fn new(inner: R) -> Self {
-        Self { inner }
+        Self { 
+            inner,
+            terminated: false,
+        }
     }
 }
 
@@ -15,12 +19,17 @@ where
     R: Read,
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        if self.terminated {
+            return Ok(0);
+        }
+
         let n = self.inner.read(buf)?;
         for i in 0..n {
             if *buf.get(i).ok_or_else(|| {
                 Error::new(ErrorKind::Other, "buffer smaller than amount of bytes read")
             })? == b'\x1a'
             {
+                self.terminated = true;
                 return Ok(i);
             }
         }
@@ -65,6 +74,21 @@ mod tests {
             3
         );
         assert_eq!(output, "foo");
+    }
+
+    #[test]
+    fn read_after_ctrl_z() {
+        let mut output = String::new();
+        let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
+
+        assert_ok_eq!(
+           reader.read_to_string(&mut output),
+            3
+        );
+        assert_eq!(output, "foo");
+        
+        // This indicates the reader has reached EOF.
+        assert_ok_eq!(reader.read_to_string(&mut output), 0);
     }
 
     struct BadReader;
