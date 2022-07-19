@@ -1,4 +1,4 @@
-use std::io::{Error, ErrorKind, Read, Result};
+use std::io::{BufRead, Error, ErrorKind, Read, Result};
 
 pub struct ReadToCtrlZ<R> {
     inner: R,
@@ -7,7 +7,7 @@ pub struct ReadToCtrlZ<R> {
 
 impl<R> ReadToCtrlZ<R> {
     pub fn new(inner: R) -> Self {
-        Self { 
+        Self {
             inner,
             terminated: false,
         }
@@ -34,6 +34,34 @@ where
             }
         }
         Ok(n)
+    }
+}
+
+impl<R> BufRead for ReadToCtrlZ<R>
+where
+    R: BufRead,
+{
+    fn fill_buf(&mut self) -> Result<&[u8]> {
+        if self.terminated {
+            return Ok(&[]);
+        }
+
+        let buf = self.inner.fill_buf()?;
+        for i in 0..buf.len() {
+            // SAFETY: `i` is guaranteed to be a valid index into `buf`.
+            if *unsafe { buf.get_unchecked(i) } == b'\x1a' {
+                if i == 0 {
+                    self.terminated = true;
+                }
+                // SAFETY: The range `..i` is guaranteed to be a valid index into `buf`.
+                return Ok(unsafe { buf.get_unchecked(..i) });
+            }
+        }
+        return Ok(buf);
+    }
+
+    fn consume(&mut self, amount: usize) {
+        self.inner.consume(amount);
     }
 }
 
@@ -81,12 +109,9 @@ mod tests {
         let mut output = String::new();
         let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
 
-        assert_ok_eq!(
-           reader.read_to_string(&mut output),
-            3
-        );
+        assert_ok_eq!(reader.read_to_string(&mut output), 3);
         assert_eq!(output, "foo");
-        
+
         // This indicates the reader has reached EOF.
         assert_ok_eq!(reader.read_to_string(&mut output), 0);
     }
@@ -108,5 +133,31 @@ mod tests {
             error.into_inner().unwrap().to_string(),
             "buffer smaller than amount of bytes read"
         );
+    }
+
+    #[test]
+    fn buf_read_exclude_ctrl_z() {
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1a".as_slice()).fill_buf(), b"foo");
+    }
+
+    #[test]
+    fn buf_read_no_ctrl_z() {
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo".as_slice()).fill_buf(), b"foo");
+    }
+
+    #[test]
+    fn buf_read_stop_at_ctrl_z() {
+        assert_ok_eq!(ReadToCtrlZ::new(b"foo\x1abar".as_slice()).fill_buf(), b"foo");
+    }
+
+    #[test]
+    fn buf_read_after_ctrl_z() {
+        let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
+
+        assert_ok_eq!(reader.fill_buf(), b"foo");
+        reader.consume(3);
+
+        // The reader should return nothing else, since the EOF `0x1A` was reached.
+        assert_ok_eq!(reader.fill_buf(), b"");
     }
 }
