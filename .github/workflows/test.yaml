@@ -53,13 +53,3 @@ jobs:
         toolchain: nightly
         components: clippy
     - run: cargo clippy -- --deny warnings
-
-  msrv:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: nightly
-    - run: cargo install cargo-msrv
-    - run: cargo msrv verify
