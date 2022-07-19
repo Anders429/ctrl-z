@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 #[cfg(test)]
 #[macro_use]
 extern crate claim;
