@@ -1,3 +1,44 @@
+//! A composable reader to treat `0x1A` as an end-of-file marker.
+//! 
+//! Historically, `0x1A` (commonly referred to as `CTRL-Z`, `^Z`, or a "substitute character") was used
+//! in old systems to explicitly mark the end of a file. While modern systems no longer require this
+//! practice, some legacy files still contain this byte to mark the end of a file. This library
+//! provides a reader to treat `0x1A` as the end of a file, rather than reading it as a regular byte.
+//!
+//! # Usage
+//! This library provides a reader in the form of a `struct` named `ReadToCtrlZ`. As is common
+//! practice, this reader is composable with other types implementing the
+//! [`Read`](https://doc.rust-lang.org/std/io/trait.Read.html) or
+//! [`BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html) traits. The reader checks the
+//! returned bytes for the presence of the EOF marker `0x1A` and stops reading when it is encountered.
+//!
+//! # Example
+//! For example, the reader defined below only reads until the `0x1A` byte, at which point it stops
+//! reading.
+//!
+//! ```
+//! use ctrl_z::ReadToCtrlZ;
+//! use std::io::Read;
+//! #
+//! # // Redefines `[u8]:as_slice()` for backwards compatibility.
+//! # trait AsSlice {
+//! #     fn as_slice(&self) -> &[u8];
+//! # }
+//! #
+//! # impl AsSlice for [u8] {
+//! #     fn as_slice(&self) -> &[u8] {
+//! #         self
+//! #     }
+//! # }
+//!
+//! let mut reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
+//! let mut output = String::new();
+//!
+//! // Reading omits the final `0x1A` byte.
+//! assert!(reader.read_to_string(&mut output).is_ok());
+//! assert_eq!(output, "foo");
+//! ```
+
 #![allow(deprecated)]
 
 #[cfg(test)]

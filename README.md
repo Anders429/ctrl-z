@@ -28,11 +28,11 @@ reading.
 ``` rust
 use ctrl_z::ReadToCtrlZ;
 
+let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
 let mut output = String::new();
 
-let mut reader = ReadToCtrlZ::new(b"foo\x1abar".as_slice());
-
-assert_eq!(reader.read_to_string(&mut output), Ok(3));
+// Reading omits the final `0x1A` byte.
+assert!(reader.read_to_string(&mut output).is_ok());
 assert_eq!(output, "foo");
 ```
 
