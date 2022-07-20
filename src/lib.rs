@@ -33,7 +33,9 @@ use std::slice;
 /// assert_eq!(output, "foo");
 /// ```
 pub struct ReadToCtrlZ<R> {
+    /// The internal reader being read.
     inner: R,
+    /// Whether or not the EOF `0x1A` byte has been reached.
     terminated: bool,
 }
 
