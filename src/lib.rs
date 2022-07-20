@@ -13,21 +13,21 @@ use std::slice;
 
 /// A composable reader to read until a `0x1A` byte (commonly known as `CTRL-Z` or the "substitute
 /// character") is encountered.
-/// 
+///
 /// This `struct` is a wrapper around another type that implements [`Read`] or [`BufRead`]. Calls
 /// to the methods of those traits will be forwarded to the interior type until a `0x1A` byte is
 /// read, at which point reading will cease.
-/// 
+///
 /// # Example
 /// Here is an example of a `ReadToCrtlZ` wrapped around a `&[u8]`, which implements [`Read`].
-/// 
+///
 /// ```
 /// use ctrl_z::ReadToCtrlZ;
 /// use std::io::Read;
-/// 
+///
 /// let mut reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
 /// let mut output = String::new();
-/// 
+///
 /// // Reading omits the final `0x1A` byte.
 /// assert!(reader.read_to_string(&mut output).is_ok());
 /// assert_eq!(output, "foo");
@@ -47,7 +47,7 @@ impl<R> ReadToCtrlZ<R> {
     ///
     /// ```
     /// use ctrl_z::ReadToCtrlZ;
-    /// 
+    ///
     /// let reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
     /// ```
     pub fn new(inner: R) -> Self {
