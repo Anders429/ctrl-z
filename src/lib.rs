@@ -173,4 +173,15 @@ mod tests {
         // The reader should return nothing else, since the EOF `0x1A` was reached.
         assert_ok_eq!(reader.fill_buf(), b"");
     }
+
+    #[test]
+    fn buf_read_after_starting_ctrl_z() {
+        let mut reader = ReadToCtrlZ::new(b"\x1abar" as &[u8]);
+
+        // Should stop before "bar".
+        assert_ok_eq!(reader.fill_buf(), b"");
+
+        // The reader should return nothing else, since the EOF `0x1A` was reached.
+        assert_ok_eq!(reader.fill_buf(), b"");
+    }
 }
