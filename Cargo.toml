@@ -1,6 +1,13 @@
 [package]
 name = "ctrl-z"
 version = "0.1.0"
+authors = ["Anders Evensen"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Anders429/ctrl-z"
+description = "A composable reader to treat `0x1A` as an end-of-file marker."
+categories = ["text-processing"]
+keywords = ["ctrlz", "ctrl-z", "eof", "sub", "substitute"]
 
 [dev-dependencies]
 claim = "0.5.0"
