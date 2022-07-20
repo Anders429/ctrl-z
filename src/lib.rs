@@ -19,7 +19,7 @@ use std::slice;
 /// read, at which point reading will cease.
 /// 
 /// # Example
-/// Here is an example of a `ReadToCrtlZ` wrapped around a [`&[u8]`], which implements [`Read`].
+/// Here is an example of a `ReadToCrtlZ` wrapped around a `&[u8]`, which implements [`Read`].
 /// 
 /// ```
 /// use ctrl_z::ReadToCtrlZ;
@@ -38,6 +38,16 @@ pub struct ReadToCtrlZ<R> {
 }
 
 impl<R> ReadToCtrlZ<R> {
+    /// Creates a new `ReadToCtrlZ`, wrapping the provided reader.
+    ///
+    /// # Example
+    /// Here is an example of creating a new `ReadToCtrlZ` wrapping around a `&[u8]`.
+    ///
+    /// ```
+    /// use ctrl_z::ReadToCtrlZ;
+    /// 
+    /// let reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
+    /// ```
     pub fn new(inner: R) -> Self {
         ReadToCtrlZ {
             inner: inner,
