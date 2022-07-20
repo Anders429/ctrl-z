@@ -24,6 +24,17 @@ use std::slice;
 /// ```
 /// use ctrl_z::ReadToCtrlZ;
 /// use std::io::Read;
+/// #
+/// # // Redefines `[u8]:as_slice()` for backwards compatibility.
+/// # trait AsSlice {
+/// #     fn as_slice(&self) -> &[u8];
+/// # }
+/// #
+/// # impl AsSlice for [u8] {
+/// #     fn as_slice(&self) -> &[u8] {
+/// #         self
+/// #     }
+/// # }
 ///
 /// let mut reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
 /// let mut output = String::new();
@@ -47,6 +58,17 @@ impl<R> ReadToCtrlZ<R> {
     ///
     /// ```
     /// use ctrl_z::ReadToCtrlZ;
+    /// #
+    /// # // Redefines `[u8]:as_slice()` for backwards compatibility.
+    /// # trait AsSlice {
+    /// #     fn as_slice(&self) -> &[u8];
+    /// # }
+    /// #
+    /// # impl AsSlice for [u8] {
+    /// #     fn as_slice(&self) -> &[u8] {
+    /// #         self
+    /// #     }
+    /// # }
     ///
     /// let reader = ReadToCtrlZ::new(b"foo\x1a".as_slice());
     /// ```
