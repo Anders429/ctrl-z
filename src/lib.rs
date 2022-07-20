@@ -1,5 +1,5 @@
 //! A composable reader to treat `0x1A` as an end-of-file marker.
-//! 
+//!
 //! Historically, `0x1A` (commonly referred to as `CTRL-Z`, `^Z`, or a "substitute character") was used
 //! in old systems to explicitly mark the end of a file. While modern systems no longer require this
 //! practice, some legacy files still contain this byte to mark the end of a file. This library
